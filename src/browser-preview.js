@@ -7,8 +7,8 @@ function freshState() {
     hours: 'Opening hours are awaiting confirmation from Northern Lights.',
     announcement: { text: '', expiresAt: '', visible: false },
     faqs: [
-      { id: 'preview', question: 'Is this the official Northern Lights website?', answer: 'This is a design preview. Business approval is still pending.', visible: true },
-      { id: 'hours', question: 'What are the opening hours?', answer: 'Opening hours and holiday schedules have not yet been confirmed.', visible: true },
+      { id: 'preview', question: 'What can the team update here?', answer: 'The browser demo lets you practice changing hours, notices, and FAQs without changing the live website.', visible: true },
+      { id: 'visit', question: 'What should visitors know?', answer: 'Only business-confirmed details should be published. This browser demo is not an official source of opening hours.', visible: true },
     ],
   };
   return { version: 1, published: structuredClone(content), draft: structuredClone(content), revision: 1, publishedRevision: 1, status: 'published', history: [], audit: [] };

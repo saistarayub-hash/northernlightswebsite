@@ -28,3 +28,16 @@ document.addEventListener('keydown', e => {
     menu.focus();
   }
 });
+
+// Keep the quick-section navigation in sync with reading position.
+const quickLinks = [...document.querySelectorAll('.explore-links a')];
+const sectionObserver = new IntersectionObserver(entries => {
+  const visible = entries.filter(entry => entry.isIntersecting);
+  if (!visible.length) return;
+  const activeId = visible[0].target.id;
+  quickLinks.forEach(link => {
+    if (link.hash === `#${activeId}`) link.setAttribute('aria-current', 'location');
+    else link.removeAttribute('aria-current');
+  });
+}, { rootMargin: '-15% 0px -55% 0px', threshold: 0 });
+quickLinks.forEach(link => sectionObserver.observe(document.querySelector(link.hash)));

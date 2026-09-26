@@ -1,1 +1,21 @@
-{"name":"northern-lights","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"vite --host 0.0.0.0","build":"vite build","preview":"vite preview --host 0.0.0.0"},"devDependencies":{"vite":"^6.3.0"}}
+{
+  "name": "northern-lights",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "api:demo": "CMS_DEMO=true node server/index.js",
+    "start": "NODE_ENV=production node server/index.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.1",
+    "vite": "^6.3.0"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

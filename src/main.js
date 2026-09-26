@@ -41,3 +41,36 @@ const sectionObserver = new IntersectionObserver(entries => {
   });
 }, { rootMargin: '-15% 0px -55% 0px', threshold: 0 });
 quickLinks.forEach(link => sectionObserver.observe(document.querySelector(link.hash)));
+
+// Static GitHub Pages remains usable; dynamic content is opt-in on full-stack hosting.
+if (import.meta.env.DEV || import.meta.env.VITE_CMS_ENABLED === 'true') {
+  fetch('/api/content', { credentials: 'same-origin' }).then(response => {
+    if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('CMS unavailable');
+    return response.json();
+  }).then(content => {
+    const notice = document.querySelector('#cms-notice');
+    if (content.announcement.visible) {
+      notice.textContent = content.announcement.text; notice.hidden = false;
+      if (content.announcement.expiresAt) {
+        const expires = Date.parse(content.announcement.expiresAt);
+        const timer = setInterval(() => { if (Date.now() >= expires) { notice.hidden = true; clearInterval(timer); } }, 1000);
+      }
+    }
+    const hours = document.querySelector('#cms-hours');
+    const heading = document.createElement('h3'); heading.textContent = 'Opening hours';
+    const text = document.createElement('p'); text.textContent = content.hours;
+    hours.replaceChildren(heading, text); hours.hidden = false;
+    document.querySelector('#fallback-hours-faq').hidden = true;
+    const questions = document.querySelector('#cms-team-faqs');
+    if (content.faqs.length) {
+      const title = document.createElement('h3'); title.textContent = 'From the team'; questions.append(title);
+      content.faqs.forEach(faq => {
+        const details = document.createElement('details');
+        const summary = document.createElement('summary'); summary.textContent = faq.question;
+        const answer = document.createElement('p'); answer.className = 'cms-team-answer'; answer.textContent = faq.answer;
+        details.append(summary, answer); questions.append(details);
+      }); questions.hidden = false;
+    }
+    document.querySelector('#staff-entry').hidden = false;
+  }).catch(() => { /* Keep the static, unconfirmed information when the CMS is offline. */ });
+}

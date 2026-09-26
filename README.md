@@ -1,6 +1,18 @@
 # Northern Lights / Lightkeeper
 
-An informational website concept for **Northern Lights Herbal Wellness, Lenasia**, with a neon-inspired visual identity and a working local staff editor. This is a dispensary brand site—not a clothing shop. The temporary merchandise storefront has been removed. No catalog, cart, checkout, payment processing, or customer-registration endpoints are provided.
+A 3D dispensary storefront concept for **Northern Lights Herbal Wellness, Lenasia**: an interactive Three.js product stage, a browsable catalog of flower, prerolls, dabs, vapes, glass, edibles and accessories, plus a working local staff editor.
+
+This is a **visual catalog**, not a transactional shop. There is no ordering, cart, checkout, delivery, payment processing or customer registration — in the UI or in the API. Stock, strains, flavours and pricing are confirmed in store.
+
+## 3D storefront
+
+- `src/scene3d.js` builds the interactive shop floor with Three.js: a rotating Sodaze can on the centre pedestal, six product stations (Sodaze preroll, 10th Planet dab pen, house dab jar, glass, flower jar, gummies), photo backdrop, aurora particles and bloom.
+- Drag to orbit, tap a product to spotlight it. Brand cards on the page dispatch `nl:focus-product` to spotlight a product in 3D.
+- The scene is code-split and loaded after first paint; on low-power devices transmission glass, bloom and particle counts are reduced, reduced-motion disables auto-rotation, and a CSS fallback shows if WebGL is unavailable.
+
+## Imagery
+
+Product, interior and brand imagery in `public/images/` is **AI-generated placeholder art** created for this preview, not photography of the real store and not the brands' official artwork. The Sodaze can treatment is an interpretation based on a reference image supplied in the build chat. Replace with licensed brand assets and the dispensary's own photography before publishing. Brand names are shown descriptively to indicate products the store stocks.
 
 ## Local development
 

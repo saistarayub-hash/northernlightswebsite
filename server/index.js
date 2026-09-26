@@ -1,8 +1,7 @@
 import express from 'express';
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { createStore, verifyPassword, validateContent, passwordHash } from './store.js';
-import { mountMerch } from './merch.js';
+import { createStore, verifyPassword, validateContent } from './store.js';
 
 const production = process.env.NODE_ENV === 'production';
 const demo = !production && process.env.CMS_DEMO === 'true';
@@ -80,24 +79,6 @@ app.post('/api/login', (req, res) => {
   setCookie(res, token);
   res.json({ user: { name: user.name, role: user.role, email: user.email } });
 });
-app.post('/api/shop/register', (req, res) => {
-  if (!demo) return res.status(503).json({ error: 'Customer registration is disabled until the real store is ready.' });
-  const now = Date.now(); const key = `register:${req.ip}`;
-  const previous = attempts.get(key);
-  const attempt = previous && previous.until > now ? previous : { count: 0, until: now + 15 * 60 * 1000 };
-  if (attempt.count >= 10) return res.status(429).json({ error: 'Too many registration attempts. Try again later.' });
-  attempt.count++; attempts.set(key, attempt);
-  const { name, email, password } = req.body || {};
-  if (typeof name !== 'string' || !name.trim() || name.length > 80 || typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || typeof password !== 'string' || password.length < 12 || password.length > 256) return res.status(400).json({ error: 'Enter a name, valid email format, and a password of 12–256 characters. Use sample details for this demo.' });
-  const normalizedEmail = email.trim().toLowerCase();
-  if (store.get().users.some(user => user.email === normalizedEmail)) return res.status(409).json({ error: 'That email is already registered. Sign in instead.' });
-  const user = { id: crypto.randomUUID(), name: name.trim(), email: normalizedEmail, role: 'customer', passwordHash: passwordHash(password) };
-  store.update(state => { state.users.push(user); });
-  sessions.delete(tokenFrom(req));
-  const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, { userId: user.id, expires: now + sessionDuration }); setCookie(res, token);
-  res.status(201).json({ user: { name: user.name, role: user.role, email: user.email } });
-});
 app.post('/api/logout', (req, res) => { sessions.delete(tokenFrom(req)); setCookie(res, '', true); res.json({ ok: true }); });
 app.get('/api/me', auth, (req, res) => res.json({ user: { name: req.user.name, role: req.user.role, email: req.user.email }, demo }));
 app.use('/api/admin', auth, (req, res, next) => {
@@ -127,7 +108,6 @@ app.post('/api/admin/restore', auth, owner, revision, (req, res) => {
   if (!snapshot) return res.status(404).json({ error: 'That saved version is no longer available.' });
   res.json(summary(store.update(state => { state.draft = snapshot.content; state.status = 'draft'; state.revision++; audit(state, req.user, 'Restored a previous version to draft'); })));
 });
-mountMerch(app, { store, demo, auth, audit });
 setInterval(() => {
   const now = Date.now();
   for (const [key, value] of sessions) if (value.expires < now) sessions.delete(key);

@@ -1,3 +1,4 @@
+const browserDemo = typeof __STATIC_CMS_DEMO__ !== 'undefined' && __STATIC_CMS_DEMO__;
 const $ = selector => document.querySelector(selector);
 let user, state, content, busy = false, previewPublished = false;
 const message = (text, error = false) => { $('#message').textContent = text; $('#message').classList.toggle('error', error); };
@@ -6,6 +7,10 @@ const dirty = () => Boolean(state && JSON.stringify(content) !== JSON.stringify(
 const stamp = value => new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 function node(tag, text, className) { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (className) el.className = className; return el; }
 async function api(url, method = 'GET', body) {
+  if (browserDemo) {
+    const { browserPreviewRequest } = await import('./browser-preview.js');
+    return browserPreviewRequest(url, method, body);
+  }
   const response = await fetch(`/api${url}`, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CMS-Request': '1' }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
   if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('The staff backend is unavailable on this host.');
   const result = await response.json();
@@ -166,20 +171,20 @@ $('#save').addEventListener('click', () => { try { validate(); mutate('/admin/dr
 $('#submit-review').addEventListener('click', () => mutate('/admin/submit', {}, 'Sent for owner review. Nothing is published yet.'));
 $('#publish').addEventListener('click', () => $('#confirm-publish').showModal());
 $('#cancel-publish').addEventListener('click', () => $('#confirm-publish').close());
-$('#confirm-publish-button').addEventListener('click', () => { $('#confirm-publish').close(); mutate('/admin/publish', {}, 'Published. The public site will show these changes on its next load.'); });
+$('#confirm-publish-button').addEventListener('click', () => { $('#confirm-publish').close(); mutate('/admin/publish', {}, browserDemo ? 'Saved to your browser preview only. The live website is unchanged.' : 'Published. The public site will show these changes on its next load.'); });
 $('#reload').addEventListener('click', async () => {
   if (dirty() && !confirm('Discard unsaved changes and load the latest saved draft?')) return;
   try { await loadEditor(); message('Latest saved draft loaded.'); } catch (error) { message(error.message, true); }
 });
 $('#login-form').addEventListener('submit', async event => {
   event.preventDefault(); const button = $('#login-form button'); button.disabled = true;
-  try { const result = await api('/login', 'POST', { email: $('#email').value, password: $('#password').value }); user = result.user; $('#password').value = ''; await loadEditor(); message(`Welcome back. You’re signed in as ${user.role}.`); }
+  try { const result = await api('/login', 'POST', { email: $('#email').value, password: $('#password').value }); user = result.user; $('#password').value = ''; await loadEditor(); message(browserDemo ? `Exploring the ${user.role} demo. No real sign-in has taken place.` : `Welcome back. You’re signed in as ${user.role}.`); }
   catch (error) { message(error.message, true); }
   finally { button.disabled = false; }
 });
 $('#logout').addEventListener('click', async () => {
   if (dirty() && !confirm('Sign out and discard unsaved changes?')) return;
-  try { await api('/logout', 'POST'); user = null; state = null; content = null; $('#editor-panel').hidden = true; $('#account').hidden = true; $('#login-panel').hidden = false; message('Signed out.'); }
+  try { await api('/logout', 'POST'); user = null; state = null; content = null; $('#editor-panel').hidden = true; $('#account').hidden = true; $('#login-panel').hidden = false; message(browserDemo ? 'Choose a different demo role. Your browser’s saved draft is kept.' : 'Signed out.'); }
   catch (error) { message(error.message, true); }
 });
 document.querySelectorAll('[data-demo]').forEach(button => button.addEventListener('click', () => {
@@ -187,9 +192,29 @@ document.querySelectorAll('[data-demo]').forEach(button => button.addEventListen
 }));
 window.addEventListener('beforeunload', event => { if (dirty()) { event.preventDefault(); event.returnValue = ''; } });
 async function initialize() {
+if (browserDemo) {
+  $('#browser-demo-banner').hidden = false;
+  $('#login-form').hidden = true;
+  $('#demo-accounts strong').textContent = 'CHOOSE A DEMO ROLE';
+  $('#demo-accounts p').textContent = 'Explore the workflow without signing in. These are simulated roles, not real employee accounts.';
+  $('#logout').textContent = 'Change demo role ↗';
+  $('#publish').textContent = 'Update browser preview ↗';
+  $('#confirm-publish h2').textContent = 'Update your browser preview?';
+  $('#confirm-publish p').textContent = 'This saves a local demonstration copy for this browser only. It does not change the live website or send anything to a server. A previous local version is kept for undo.';
+  $('#confirm-publish-button').textContent = 'Update preview ↗';
+  document.querySelectorAll('a[href="./index.html"]').forEach(link => { link.href = './index.html?staff-demo=1'; });
+  $('#reset-browser-demo').addEventListener('click', async () => {
+    if (!confirm('Reset this browser’s demo content, drafts, and history? This does not affect the real website.')) return;
+    try {
+      await api('/demo/reset', 'POST'); user = null; state = null; content = null;
+      $('#editor-panel').hidden = true; $('#account').hidden = true; $('#login-panel').hidden = false;
+      message('Browser demo reset. Choose a role to start again.');
+    } catch (error) { message(error.message, true); }
+  });
+}
 try {
   const health = await api('/health');
-  $('#environment').textContent = health.demo ? 'LOCAL DEMO · NOT PRODUCTION' : 'CONNECTED TO CMS';
+  $('#environment').textContent = browserDemo ? 'BROWSER DEMO · NOT A LIVE CMS' : health.demo ? 'LOCAL DEMO · NOT PRODUCTION' : 'CONNECTED TO CMS';
   $('#demo-accounts').hidden = !health.demo;
   try { const result = await api('/me'); user = result.user; await loadEditor(); } catch (error) { if (user) message(error.message, true); }
 } catch (error) {

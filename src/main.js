@@ -42,12 +42,27 @@ const sectionObserver = new IntersectionObserver(entries => {
 }, { rootMargin: '-15% 0px -55% 0px', threshold: 0 });
 quickLinks.forEach(link => sectionObserver.observe(document.querySelector(link.hash)));
 
-// Static GitHub Pages remains usable; dynamic content is opt-in on full-stack hosting.
-if (import.meta.env.DEV || import.meta.env.VITE_CMS_ENABLED === 'true') {
-  fetch('/api/content', { credentials: 'same-origin' }).then(response => {
-    if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('CMS unavailable');
-    return response.json();
-  }).then(content => {
+// GitHub Pages offers an isolated local-content demonstration, never live publishing.
+const staticStaffDemo = typeof __STATIC_CMS_DEMO__ !== 'undefined' && __STATIC_CMS_DEMO__;
+const browserContentDemo = staticStaffDemo && new URLSearchParams(location.search).get('staff-demo') === '1';
+if (staticStaffDemo) {
+  document.querySelector('#staff-entry').hidden = false;
+  document.querySelector('#staff-entry').textContent = 'STAFF STUDIO DEMO ↗';
+}
+if (browserContentDemo) {
+  const banner = document.createElement('aside'); banner.className = 'browser-content-banner';
+  banner.append(document.createTextNode('BROWSER-ONLY CONTENT PREVIEW · Your edits are not published to the live site. '));
+  const back = document.createElement('a'); back.href = './staff.html'; back.textContent = 'Return to staff demo ↗'; banner.append(back);
+  document.body.prepend(banner);
+}
+if (browserContentDemo || import.meta.env.DEV || import.meta.env.VITE_CMS_ENABLED === 'true') {
+  const loadContent = browserContentDemo
+    ? import('./browser-preview.js').then(module => module.browserPreviewRequest('/content'))
+    : fetch('/api/content', { credentials: 'same-origin' }).then(response => {
+      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('CMS unavailable');
+      return response.json();
+    });
+  loadContent.then(content => {
     const notice = document.querySelector('#cms-notice');
     if (content.announcement.visible) {
       notice.textContent = content.announcement.text; notice.hidden = false;
@@ -72,5 +87,8 @@ if (import.meta.env.DEV || import.meta.env.VITE_CMS_ENABLED === 'true') {
       }); questions.hidden = false;
     }
     document.querySelector('#staff-entry').hidden = false;
-  }).catch(() => { /* Keep the static, unconfirmed information when the CMS is offline. */ });
+  }).catch(error => {
+    if (browserContentDemo) document.querySelector('.browser-content-banner').append(document.createTextNode(` ${error.message}`));
+    // Otherwise retain the static, unconfirmed information while the CMS is offline.
+  });
 }

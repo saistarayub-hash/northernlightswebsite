@@ -6,6 +6,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
+const BASE = import.meta.env.BASE_URL || '/';
 const canvas = document.querySelector('#stage-canvas');
 let LOW_POWER = false;
 if (canvas) start(canvas).catch(() => document.body.classList.add('stage-fallback'));
@@ -55,7 +56,7 @@ async function start(canvas) {
   scene.add(spot);
 
   // Photo backdrop: the room imagery pans around the scene as you orbit.
-  const roomTex = await loadTexture('/images/hero-room.jpg');
+  const roomTex = await loadTexture(`${BASE}images/hero-room.jpg`);
   roomTex.wrapS = THREE.RepeatWrapping;
   roomTex.repeat.set(2.4, 1);
   const dome = new THREE.Mesh(
@@ -304,7 +305,7 @@ function loadTexture(url) {
 }
 
 async function canTexture() {
-  const label = await loadTexture('/images/front-can.webp');
+  const label = await loadTexture(`${BASE}images/front-can.webp`);
   const size = 1400;
   const ctx = document.createElement('canvas').getContext('2d');
   ctx.canvas.width = size;
